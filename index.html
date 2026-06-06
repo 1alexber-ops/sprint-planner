@@ -1,0 +1,1653 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sprint Planner — paritet</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#F7F7F5;--bg2:#EFEFEC;--bg3:#E5E5E0;
+  --text:#1A1A18;--text2:#6B6B65;--text3:#9B9B93;
+  --border:#DDDDD8;--border2:#CCCCC6;
+  --green:#3D7A1E;--green-bg:#EAF3DE;
+  --orange:#854F0B;--orange-bg:#FAEEDA;
+  --red:#A32D2D;--red-bg:#FCEBEB;
+  --blue:#2C5F9E;--blue-bg:#E8F0FB;
+  --purple:#5B3DB5;--purple-bg:#EEE8FF;
+  --radius:8px;--radius-sm:5px;
+}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh;}
+header{background:#1A1A18;color:#F7F7F5;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+header h1{font-size:15px;font-weight:600;letter-spacing:.02em;}
+.save-status{font-size:11px;color:#9B9B93;display:flex;align-items:center;gap:6px;}
+.save-dot{width:7px;height:7px;border-radius:50%;background:#9B9B93;transition:background .3s;}
+.save-dot.saving{background:#EF9F27;}
+.save-dot.saved{background:#639922;}
+.save-dot.error{background:#E24B4A;}
+.main{max-width:1100px;margin:0 auto;padding:24px 20px;}
+.tabs{display:flex;gap:2px;margin-bottom:24px;background:var(--bg2);border-radius:var(--radius);padding:4px;width:fit-content;}
+.tab{padding:7px 16px;font-size:13px;cursor:pointer;border:none;background:none;color:var(--text2);border-radius:6px;font-weight:500;transition:all .15s;}
+.tab.active{background:#fff;color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.1);}
+.tab:hover:not(.active){color:var(--text);background:var(--bg3);}
+.panel{display:none;}.panel.active{display:block;}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.grid-5{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px;}
+.metric{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;}
+.metric .label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+.metric .value{font-size:22px;font-weight:600;font-family:'DM Mono',monospace;}
+.metric .msub{font-size:11px;color:var(--text3);margin-top:3px;}
+.card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:14px;}
+.section-title{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px;}
+.sprint-block{border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;}
+.sprint-title-bar{padding:12px 16px;background:var(--bg2);display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:background .1s;}
+.sprint-title-bar:hover{background:var(--bg3);}
+.sprint-body{padding:0 16px 12px;background:#fff;}
+.bar-wrap{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-top:6px;}
+.bar-fill{height:100%;border-radius:3px;transition:width .4s;}
+.bar-ok{background:var(--green);}.bar-warn{background:#D4840A;}.bar-over{background:#C0392B;}
+.team-row{display:grid;grid-template-columns:160px 80px 100px 1fr;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);}
+.team-row:last-child{border-bottom:none;}
+.role-load-row{display:grid;grid-template-columns:140px 1fr 120px;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);}
+.role-load-row:last-child{border-bottom:none;}
+.filter-row{display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap;}
+input[type=text],input[type=url],select{font-family:inherit;font-size:13px;height:34px;padding:0 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:#fff;color:var(--text);outline:none;}
+input[type=text]:focus,input[type=url]:focus,select:focus{border-color:#9B9B93;}
+input[type=number]{font-family:'DM Mono',monospace;font-size:13px;height:30px;padding:0 8px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:#fff;color:var(--text);outline:none;text-align:center;}
+input[type=number]:focus{border-color:#9B9B93;}
+input[type=date]{font-family:inherit;font-size:14px;font-weight:600;border:none;background:none;color:var(--text);cursor:pointer;outline:none;padding:0;}
+.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;}
+.badge-s{background:var(--green-bg);color:var(--green);}
+.badge-none{background:var(--bg2);color:var(--text3);}
+.badge-split{background:var(--purple-bg);color:var(--purple);}
+.badge-over{background:var(--red-bg);color:var(--red);}
+.part-chip{display:inline-flex;align-items:center;background:var(--purple-bg);color:var(--purple);border-radius:99px;padding:1px 8px;font-size:11px;font-weight:600;}
+.pnum{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-size:11px;font-weight:600;background:var(--bg2);color:var(--text2);flex-shrink:0;}
+.btn{padding:7px 16px;border-radius:var(--radius-sm);font-size:13px;cursor:pointer;border:none;font-weight:500;font-family:inherit;transition:all .12s;}
+.btn-primary{background:var(--text);color:#fff;}.btn-primary:hover{background:#333;}
+.btn-secondary{background:var(--bg2);color:var(--text);}.btn-secondary:hover{background:var(--bg3);}
+.btn-ghost{background:none;color:var(--text2);border:1px solid var(--border2);}.btn-ghost:hover{background:var(--bg2);color:var(--text);}
+.btn-sm{padding:3px 9px;font-size:11px;}
+.btn-danger{background:var(--red-bg);color:var(--red);border:none;}
+.no-data{color:var(--text3);font-size:13px;padding:36px 0;text-align:center;}
+.summary-bar{display:flex;gap:20px;align-items:center;flex-wrap:wrap;margin-bottom:20px;padding:12px 16px;background:var(--bg2);border-radius:var(--radius);border:1px solid var(--border);}
+.summary-item{font-size:13px;color:var(--text2);}.summary-item .sv{font-weight:600;color:var(--text);}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(2px);}
+.modal{background:#fff;border-radius:12px;padding:24px;width:460px;max-width:95vw;box-shadow:0 16px 48px rgba(0,0,0,.15);}
+.modal-task{padding:0 !important;display:grid !important;grid-template-rows:auto 1fr auto;max-height:88vh;overflow:hidden;width:520px !important;}
+.modal-header{padding:20px 24px 0;}
+.modal-body{padding:0 24px;overflow-y:auto;min-height:0;}
+.modal-footer{padding:14px 24px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;background:#fff;border-radius:0 0 12px 12px;flex-shrink:0;}
+.modal h3{font-size:16px;font-weight:600;margin-bottom:4px;}
+.modal .msub{font-size:12px;color:var(--text3);margin-bottom:18px;}
+.modal-parts{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
+.modal-part{display:grid;grid-template-columns:1fr 80px 70px 32px;gap:6px;align-items:center;}
+.modal-part input{font-size:13px;height:34px;padding:0 10px;text-align:left;}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;}
+.split-warning{font-size:11px;color:var(--red);margin-top:6px;}
+.split-ok{font-size:11px;color:var(--green);margin-top:6px;}
+.roadmap-wrap{overflow-x:auto;}
+.task-drag-row{transition:opacity .15s;}
+.task-drag-row.dragging{opacity:.4;}
+.task-drag-row.drag-over{border-top:2px solid #2C5F9E !important;}
+.drag-handle{cursor:grab;color:var(--text3);padding:0 4px;user-select:none;font-size:14px;}
+.drag-handle:active{cursor:grabbing;}
+.loading-overlay{position:fixed;inset:0;background:rgba(247,247,245,.9);display:flex;align-items:center;justify-content:center;z-index:2000;flex-direction:column;gap:12px;}
+.loading-overlay .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--text);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<div id="loading-overlay" class="loading-overlay">
+  <div class="spinner"></div>
+  <div style="font-size:13px;color:var(--text2);">Загрузка данных...</div>
+</div>
+<header>
+  <div><h1>Sprint Planner — paritet <span style="font-size:11px;font-weight:400;color:#6B6B65;margin-left:4px;">(v0.94)</span></h1></div>
+  <div class="save-status">
+    <div class="save-dot" id="save-dot"></div>
+    <span id="save-label">—</span>
+  </div>
+</header>
+<div class="main">
+<div class="tabs">
+  <button class="tab active" onclick="showTab(event,'roadmap')">🗓 Roadmap</button>
+  <button class="tab" onclick="showTab(event,'backlog')">Бэклог</button>
+  <button class="tab" onclick="showTab(event,'team')">Команда</button>
+  <button class="tab" onclick="showTab(event,'sprints')">Спринты</button>
+  <button class="tab" onclick="showTab(event,'load')">Загрузка</button>
+</div>
+<div id="tab-roadmap" class="panel active"></div>
+<div id="tab-backlog" class="panel"></div>
+<div id="tab-team" class="panel"></div>
+<div id="tab-sprints" class="panel"></div>
+<div id="tab-load" class="panel"></div>
+</div>
+
+<div id="split-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeSplit()">
+  <div class="modal">
+    <h3 id="split-title">Разбивка задачи</h3>
+    <div class="msub" id="split-sub"></div>
+    <div class="modal-parts" id="split-parts"></div>
+    <div id="split-status" style="margin-bottom:10px;"></div>
+    <div style="display:grid;grid-template-columns:1fr 80px 70px 32px;gap:6px;font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;padding:0 2px;">
+      <span>Название</span><span>Часы</span><span>Спринт</span><span></span>
+    </div>
+    <div style="margin-bottom:4px;"><button class="btn btn-ghost btn-sm" onclick="addSplitPart()">+ Добавить часть</button></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeSplit()">Отмена</button>
+      <button class="btn btn-primary" onclick="applySplit()">Применить</button>
+    </div>
+  </div>
+</div>
+
+<div id="link-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeLinkModal()">
+  <div class="modal">
+    <h3>Ссылка на описание</h3>
+    <div class="msub" id="link-task-name"></div>
+    <div style="margin-bottom:16px;">
+      <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:6px;">URL (Jira, Confluence, Notion…)</label>
+      <input type="url" id="link-input" placeholder="https://..." style="width:100%;height:36px;">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-danger btn-sm" onclick="clearLink()" style="margin-right:auto;">Удалить</button>
+      <button class="btn btn-secondary" onclick="closeLinkModal()">Отмена</button>
+      <button class="btn btn-primary" onclick="applyLink()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+
+
+<div id="gantt-tip" style="position:fixed;display:none;background:#1A1A18;color:#fff;font-size:12px;font-weight:500;padding:6px 10px;border-radius:6px;pointer-events:none;z-index:9999;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.2);"></div>
+
+<!-- Task Detail Modal -->
+<div id="task-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeTaskModal()">
+  <div class="modal modal-task">
+    <div class="modal-header">
+      <div style="display:flex;align-items:start;justify-content:space-between;margin-bottom:4px;">
+        <div>
+          <h3 id="task-modal-name" style="font-size:15px;max-width:420px;line-height:1.4;"></h3>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;">
+      <div id="task-modal-meta" class="msub" style="margin-bottom:0;"></div>
+      <div id="task-modal-priority-btn"></div>
+    </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="closeTaskModal()" style="flex-shrink:0;padding:4px 8px;margin-left:8px;">✕</button>
+      </div>
+      <div style="height:1px;background:var(--border);margin:14px 0 0;"></div>
+    </div>
+    <div class="modal-body">
+    <div style="height:14px;"></div>
+    <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Порядок работ</div>
+    <div id="task-modal-order" style="margin-bottom:12px;"></div>
+    <button onclick="resetRoleOrder(taskModalId)" style="font-size:11px;padding:3px 10px;border:1px solid var(--border);border-radius:4px;background:var(--bg2);cursor:pointer;color:var(--text2);margin-bottom:16px;">↺ сброс</button>
+    <div style="height:1px;background:var(--border);margin:8px 0 14px;"></div>
+    <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;">Оценка по ролям</div>
+    <div id="task-modal-roles"></div>
+    <div style="height:1px;background:var(--border);margin:14px 0;"></div>
+    <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;">Уверенность в оценке (Confidence)</div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;" id="conf-buttons"></div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <input type="number" id="task-modal-conf" min="0" max="100" placeholder="%" style="width:64px;">
+        <span style="font-size:12px;color:var(--text3);">%</span>
+      </div>
+    </div>
+    <div id="conf-bar-wrap" style="height:6px;background:var(--bg2);border-radius:3px;overflow:hidden;margin-bottom:4px;width:100%;">
+      <div id="conf-bar" style="height:100%;border-radius:3px;transition:width .2s;"></div>
+    </div>
+    <div id="conf-hint" style="font-size:11px;color:var(--text3);margin-bottom:4px;"></div>
+    <div style="height:1px;background:var(--border);margin:14px 0;"></div>
+    <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Закрепить за спринтом</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+      <select id="task-modal-sprint" style="height:34px;font-size:13px;">
+        <option value="">— Авто (по приоритету)</option>
+      </select>
+      <span style="font-size:12px;color:var(--text3);">Первый спринт задачи</span>
+    </div>
+    <div id="task-modal-sprint-hint" style="font-size:11px;color:var(--text3);margin-bottom:4px;"></div>
+    <div style="height:1px;background:var(--border);margin:14px 0;"></div>
+    <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Ссылка на описание</div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input type="url" id="task-modal-link" placeholder="https://..." style="flex:1;height:34px;">
+      <button class="btn btn-ghost btn-sm" id="task-modal-link-open" onclick="openTaskLink()" style="display:none;">🔗 Открыть</button>
+    </div>
+    <div style="height:1px;background:var(--border);margin:14px 0;"></div>
+    <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Комментарии</div>
+    <div id="task-comments-list" style="max-height:180px;overflow-y:auto;margin-bottom:10px;display:flex;flex-direction:column;gap:8px;"></div>
+    <div style="display:flex;gap:8px;align-items:flex-start;">
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+        <input type="text" id="comment-author" placeholder="Ваше имя" style="height:30px;font-size:12px;">
+        <textarea id="comment-text" placeholder="Комментарий..." style="font-family:inherit;font-size:12px;height:56px;padding:6px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);resize:none;outline:none;color:var(--text);background:#fff;"></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="addComment()" style="height:36px;margin-top:20px;white-space:nowrap;">Отправить</button>
+    </div>
+    <div style="height:8px;"></div>
+    </div><!-- end modal-body -->
+    <div class="modal-footer">
+      <span style="font-size:12px;color:var(--text3);margin-right:auto;display:flex;align-items:center;gap:5px;">
+        <span id="modal-save-dot" style="width:7px;height:7px;border-radius:50%;background:var(--text3);display:inline-block;"></span>
+        <span id="modal-save-label">Изменения сохраняются автоматически</span>
+      </span>
+      <button class="btn btn-secondary" onclick="closeTaskModal()">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBf48n8EgKOmKcEooNqqjxKUgfq4hPnT-c",
+  authDomain: "eparitet26.firebaseapp.com",
+  projectId: "eparitet26",
+  storageBucket: "eparitet26.firebasestorage.app",
+  messagingSenderId: "272938609480",
+  appId: "1:272938609480:web:53ca47745bb1225a49617d"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const SAVE_KEY = 'sprint-planner-v1';
+let saveTimer = null;
+
+function setSaveStatus(status) {
+  const dot = document.getElementById('save-dot');
+  const label = document.getElementById('save-label');
+  dot.className = 'save-dot ' + status;
+  if(status === 'saving') label.textContent = 'Сохранение...';
+  else if(status === 'saved') label.textContent = 'Сохранено';
+  else if(status === 'error') label.textContent = 'Ошибка сохранения';
+  else label.textContent = '—';
+}
+
+window.saveToFirestore = async function() {
+  setSaveStatus('saving');
+  try {
+    const data = {
+      tasks: window.tasks.map(t => ({
+        id: t.id,
+        priority: t.priority,
+        manualEst: t.manualEst,
+        splits: t.splits,
+        link: t.link,
+        confidence: t.confidence,
+        pinnedSprint: t.pinnedSprint,
+        comments: t.comments||[],
+        estimates: t.estimates||{},
+        pinnedPartSprints: t.pinnedPartSprints||{},
+        roleOrder: t.roleOrder||null,
+        rolePinnedSprint: t.rolePinnedSprint||{}
+      })),
+      taskOrder: window.tasks.map(t=>t.id),
+      team: window.team,
+      startDate: window.startDate.toISOString()
+    };
+    await setDoc(doc(db, 'projects', SAVE_KEY), data);
+    setSaveStatus('saved');
+  } catch(e) {
+    console.error(e);
+    setSaveStatus('error');
+  }
+}
+
+window.scheduleSave = function() {
+  if(saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => window.saveToFirestore(), 1000);
+}
+
+async function loadFromFirestore() {
+  try {
+    const snap = await getDoc(doc(db, 'projects', SAVE_KEY));
+    if(snap.exists()) {
+      const data = snap.data();
+      if(data.tasks) {
+        data.tasks.forEach(saved => {
+          const t = window.tasks.find(t => t.id === saved.id);
+          if(t) {
+            // splits/pinnedSprint/pinnedPartSprints are reset — algorithm handles distribution
+            t.splits = null;
+            t.pinnedSprint = null;
+            t.pinnedPartSprints = {};
+            t.comments = saved.comments ?? [];
+            t.manualEst = saved.manualEst ?? null;
+            t.roleOrder = saved.roleOrder || null;
+            if(saved.priority !== undefined) t.priority = saved.priority;
+            if(saved.link !== undefined) t.link = saved.link;
+            if(saved.confidence !== undefined) t.confidence = saved.confidence;
+            if(saved.estimates && Object.keys(saved.estimates).length > 0) t.estimates = {...saved.estimates};
+            if(saved.rolePinnedSprint && Object.keys(saved.rolePinnedSprint).length > 0) t.rolePinnedSprint = {...saved.rolePinnedSprint};
+          }
+        });
+      }
+      if(data.taskOrder && Array.isArray(data.taskOrder)){
+        const ordered = [];
+        data.taskOrder.forEach(id => {
+          const t = window.tasks.find(t=>t.id===id);
+          if(t) ordered.push(t);
+        });
+        // Add any tasks not in saved order (new tasks)
+        window.tasks.forEach(t => { if(!ordered.find(o=>o.id===t.id)) ordered.push(t); });
+        window.tasks = ordered;
+      }
+      if(data.team) window.team = {...data.team};
+      if(!window.team.bugfixBySprint) window.team.bugfixBySprint={};
+      if(!window.team.roleCapacity) window.team.roleCapacity={};
+      if(data.bugfixBySprint) window.team.bugfixBySprint = data.bugfixBySprint;
+      if(data.startDate) { window.startDate = new Date(data.startDate); window.startDate.setHours(0,0,0,0); }
+    }
+  } catch(e) {
+    console.error('Load error:', e);
+  }
+  document.getElementById('loading-overlay').style.display = 'none';
+  window.autoAssignSprints();
+  window.renderAll();
+  setSaveStatus('saved');
+}
+
+loadFromFirestore();
+</script>
+
+<script>
+const ROLES=['BA','Android','iOS','WEB Front','WEB/Mobile Api','Back Front','Back Api','QA','Дизайн'];
+const SPRINT_COLORS=['#2C5F9E','#3D7A1E','#7B3FB0','#C0640A','#0F7A6A','#B03030','#1E77B4','#7A3AA8','#207A40','#B05000'];
+const RAW=[
+  {id:1,name:'Реализовать возможность отправки сообщений клиентам в СДБО по импортируемому списку',priority:1,estimates:{'BA':27,'Back Front':46,'Back Api':35,'QA':32,'Дизайн':3},confidence:60,link:'https://rdm.lwo.by/issues/272597'},
+  {id:2,name:'Интеграции с CRM-системой',priority:2,estimates:{'BA':20,'WEB/Mobile Api':20,'Back Api':70,'QA':24},confidence:70,link:'https://rdm.lwo.by/issues/272613'},
+  {id:3,name:'Пересмотр UI и UX ТОП 5 фунциональностей eParitet',priority:3,estimates:{'BA':34,'WEB Front':51,'WEB/Mobile Api':17,'Back Api':17,'QA':45,'Дизайн':5},confidence:40,link:null},
+  {id:4,name:'Организация процесса информирования клиентов о технических работах и сбоях СДБО ЮЛ',priority:4,estimates:{'BA':80,'Android':33,'iOS':33,'WEB/Mobile Api':51,'Back Front':33,'Back Api':51,'Дизайн':5},confidence:60,link:null},
+  {id:5,name:'График приема платежей в СДБО',priority:5,estimates:{'BA':100,'Android':75,'iOS':75,'WEB Front':75,'WEB/Mobile Api':50,'Back Api':25,'QA':120,'Дизайн':5},confidence:60,link:null},
+  {id:6,name:'Актуализация анкетных данных клиентов через СДБО',priority:6,estimates:{'BA':107,'WEB Front':75,'WEB/Mobile Api':86,'Back Front':75,'Back Api':87,'QA':129},confidence:60,link:null},
+  {id:7,name:'Смена ТП в WEB',priority:7,estimates:{'BA':115,'Android':38,'iOS':38,'WEB Front':83,'WEB/Mobile Api':113,'Back Front':30,'Back Api':45,'QA':138,'Дизайн':30},confidence:60,link:'https://rdm.lwo.by/issues/269794'},
+  {id:8,name:'Потранзакционный отчет по эквайрингу в СДБО',priority:8,estimates:{},confidence:null,link:null},
+  {id:9,name:'LBRUS. Автоматизация ведения, учета и оформления договоров эквайринга. Этап 2. Автоматизация подачи заявок регистрации и изменению регистрационных параметров пунктов обслуживания по карточкам в ОАО БПЦ',priority:9,estimates:{'BA':180,'Back Front':162,'Back Api':377,'QA':216,'Дизайн':30},confidence:60,link:'https://rdm.lwo.by/issues/244043'},
+  {id:10,name:'Переписка с банком (изменение расположения раздела с перепиской в WEB и модификация отображения переписки в МБ)',priority:10,estimates:{'BA':40,'WEB Front':87,'Back Front':12,'Back Api':23,'QA':49,'Дизайн':30},confidence:60,link:null},
+  {id:11,name:'Автоматизация подключения СДБО (в том числе офлайн)',priority:11,estimates:{},confidence:null,link:null},
+  {id:12,name:'Расчетные листки',priority:12,estimates:{'BA':69,'WEB Front':57,'WEB/Mobile Api':64,'Back Front':35,'Back Api':50,'QA':82,'Дизайн':5},confidence:60,link:null},
+  {id:13,name:'Эквайринг без счета онлайн. Партнерский эквайринг часть 2',priority:13,estimates:{'BA':93,'WEB Front':121,'Back Front':157,'QA':111},confidence:60,link:'https://rdm.lwo.by/issues/240921'},
+  {id:14,name:'Изменение процесса восстановления пароля',priority:14,estimates:{'BA':35,'Android':23,'iOS':23,'WEB Front':23,'WEB/Mobile Api':17,'Back Api':17,'QA':42,'Дизайн':5},confidence:70,link:null},
+  {id:15,name:'Визуализация прохождения валютных (международных) платежей ЮЛ в СДБО',priority:15,estimates:{'BA':23,'WEB Front':23,'WEB/Mobile Api':12,'Back Api':35,'QA':28,'Дизайн':5},confidence:50,link:null},
+  {id:16,name:'Регулирование порядка размещения депозитных продуктов на витрине в СДБО',priority:16,estimates:{'BA':11,'WEB Front':16,'Back Api':16,'QA':13},confidence:60,link:null},
+  {id:17,name:'Справки ЮЛ в СДБО',priority:17,estimates:{'BA':39,'WEB Front':35,'WEB/Mobile Api':35,'Back Front':23,'Back Api':23,'QA':46,'Дизайн':30},confidence:50,link:null},
+  {id:18,name:'Модификация текущего процесса пополнения корпокарты посредством СДБО',priority:18,estimates:{},confidence:null,link:null},
+  {id:19,name:'Визирование пакетов документов',priority:null,estimates:{'BA':23,'WEB Front':12,'WEB/Mobile Api':12,'Back Api':46,'QA':28},confidence:60,link:'https://rdm.lwo.by/issues/258603'},
+  {id:20,name:'WEB/МБ. Оформление заявления на отзыв документов, оформленных в составе пакета на оплату труда.',priority:null,estimates:{'BA':55,'Android':33,'iOS':33,'WEB Front':33,'WEB/Mobile Api':52,'Back Api':12,'QA':65,'Дизайн':5},confidence:70,link:'https://rdm.lwo.by/issues/257297'},
+  {id:21,name:'Внедрить возможность установки времени действия способа подписания у конкретной учетки',priority:null,estimates:{},confidence:null,link:null},
+  {id:22,name:'Lbrus. Изменение организации на договоре эквайринга.',priority:null,estimates:{},confidence:null,link:'https://rdm.lwo.by/issues/252456'},
+  {id:23,name:'Реализовать свич с выбором "Свои счета" при создании ПП в ЭТП.',priority:null,estimates:{'BA':57,'Android':57,'iOS':57,'WEB Front':57,'QA':68,'Дизайн':5},confidence:70,link:'https://rdm.lwo.by/issues/267232'},
+  {id:24,name:'Внедрение анализа номера счета с 5-8 символы и подтягивание из справочника БИК и Банка',priority:null,estimates:{'BA':69,'Android':69,'iOS':69,'WEB Front':69,'QA':82},confidence:70,link:'https://rdm.lwo.by/issues/263166'},
+  {id:25,name:'Кредитные и депозитные счета вывести в отдельный блок доступных средств в ИБ/МБ',priority:null,estimates:{},confidence:null,link:null},
+  {id:26,name:'MБ. Подсказка. Запрос «Платежное поручение» тип «Международный» внесение изменений в блок «Бенефициар нерезидент»',priority:null,estimates:{'BA':1,'Android':5,'iOS':5,'QA':1},confidence:70,link:'https://rdm.lwo.by/issues/198125'},
+  {id:27,name:'МБ. Сумма карточки документа "Пакет документов на оплату" (с ПП в бюджет, созданным в рамках пакета)',priority:null,estimates:{'BA':3,'Android':5,'iOS':5,'QA':4,'Дизайн':3},confidence:70,link:'https://rdm.lwo.by/issues/232803'},
+  {id:28,name:'Эквайринг. Email. Подсказка для поля "электронная почта" при оформлении эквайринга',priority:null,estimates:{'BA':20,'Android':23,'iOS':23,'WEB Front':15,'QA':24,'Дизайн':3},confidence:70,link:'https://rdm.lwo.by/issues/243252'},
+  {id:29,name:'ИБ. Документы. Просмотр документов с разбивкой на страницы (10-25, 25-50, 50-100, ВСЕ)',priority:null,estimates:{'BA':21,'WEB Front':37,'Back Front':27,'QA':26},confidence:70,link:'https://rdm.lwo.by/issues/243398'},
+  {id:30,name:'WEB. Импорт документов. Детализация истории',priority:null,estimates:{'BA':27,'WEB Front':64,'Back Api':17,'QA':33,'Дизайн':5},confidence:70,link:'https://rdm.lwo.by/issues/242095'},
+  {id:31,name:'WEB/МБ. Эквайринг. "Режим работы" для заявки',priority:null,estimates:{'BA':45,'Android':39,'iOS':39,'WEB Front':45,'Back Front':13,'QA':54},confidence:70,link:'https://rdm.lwo.by/issues/241301'},
+  {id:32,name:'Автоматическое открытие карточки в NT при подаче документов онлайн',priority:null,estimates:{},confidence:null,link:'https://rdm.lwo.by/issues/267252'},
+  {id:33,name:'Модернизация раздела "Финансирование" (0 шаг по кредиту)',priority:null,estimates:{'BA':26,'WEB Front':63,'Back Api':14,'QA':31,'Дизайн':5},confidence:70,link:'https://rdm.lwo.by/issues/238073'},
+  {id:34,name:'Онбординг в ЭТП',priority:null,estimates:{'BA':172,'Android':142,'iOS':142,'WEB Front':142,'WEB/Mobile Api':39,'Back Api':52,'Дизайн':30},confidence:60,link:'https://rdm.lwo.by/issues/248060'},
+  {id:35,name:'ТЭ/ИЭ. Заключение договора NEW для уже действующий договоров',priority:null,estimates:{},confidence:null,link:'https://rdm.lwo.by/issues/259840'},
+];
+
+window.tasks=RAW.map(t=>({...t,estimates:{...t.estimates},manualEst:null,assignedSprint:null,splits:null,link:t.link||null,confidence:t.confidence||null,pinnedSprint:null,pinnedPartSprints:{},rolePinnedSprint:{},comments:[]}));
+window.team={workDaysPerSprint:10,hoursPerDay:8,bugfixPct:0,bugfixBySprint:{},roleCapacity:{},roles:{'BA':1,'Android':1,'iOS':1,'WEB Front':1,'WEB/Mobile Api':1,'Back Front':1,'Back Api':1,'QA':1,'Дизайн':1}};
+window.sprints=[];
+window.startDate=new Date();window.startDate.setHours(0,0,0,0);
+let splitTargetId=null,splitDraft=[],linkTargetId=null;
+
+function hoursPerPerson(){return window.team.workDaysPerSprint*window.team.hoursPerDay;}
+function sprintCapacity(role){
+  const base=(window.team.roles[role]||0)*hoursPerPerson();
+  const pct=(window.team.roleCapacity||{})[role];
+  const factor=pct!=null?pct/100:1;
+  return Math.round(base*factor);
+}
+function totalSprintCapacity(){return ROLES.reduce((s,r)=>s+sprintCapacity(r),0);}
+function effectiveSprintCapacity(sprintNum){
+  const total=totalSprintCapacity();
+  const bbs=window.team.bugfixBySprint||{};
+  const bugfix=sprintNum!=null?(bbs[sprintNum]||0):(window.team.bugfixPct||0);
+  return Math.round(total*(1-bugfix/100));
+}
+function bugfixHours(sprintNum){
+  return totalSprintCapacity()-effectiveSprintCapacity(sprintNum);
+}
+function totalPeople(){return ROLES.reduce((s,r)=>s+(window.team.roles[r]||0),0);}
+function taskEffectiveHours(t){
+  const sum=Object.values(t.estimates||{}).reduce((s,v)=>s+(v||0),0);
+  if(sum>0)return sum; // estimates always win
+  if(t.manualEst!==null)return t.manualEst;
+  return null;
+}
+function sprintDates(){
+  const dates=[];let cur=new Date(window.startDate);
+  for(let i=0;i<window.sprints.length;i++){
+    const s=new Date(cur);let end=new Date(s),wd=0;
+    while(wd<window.team.workDaysPerSprint-1){end.setDate(end.getDate()+1);if(end.getDay()!==0&&end.getDay()!==6)wd++;}
+    dates.push({start:new Date(s),end:new Date(end)});
+    cur=new Date(end);cur.setDate(cur.getDate()+1);
+    while(cur.getDay()===0||cur.getDay()===6)cur.setDate(cur.getDate()+1);
+  }
+  return dates;
+}
+function fmtDate(d){return d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'});}
+function fmtDateFull(d){return d.toLocaleDateString('ru-RU',{day:'2-digit',month:'short'});}
+window.autoAssignSprints=function(){
+  window.tasks.forEach(t=>t.assignedSprint=null);
+  window.sprints=[];
+  const MAX_SPRINTS=50;
+  const DEFAULT_ORDER={'BA':1,'Дизайн':1,'Back Api':2,'Back Front':2,'WEB/Mobile Api':2,'WEB Front':3,'Android':3,'iOS':3,'QA':4};
+
+  const sortedTasks=[...window.tasks].sort((a,b)=>{
+    const pa=a.priority===null?99999:a.priority;
+    const pb=b.priority===null?99999:b.priority;
+    return pa-pb;
+  });
+
+  // roleUsed[role][si] = hours used in sprint si
+  const roleUsed={};
+  ROLES.forEach(r=>{roleUsed[r]=new Array(MAX_SPRINTS).fill(0);});
+
+  // roleTaskSprint[role][taskId] = sprint index
+  const roleTaskSprint={};
+  ROLES.forEach(r=>{roleTaskSprint[r]={};});
+
+  // rsh[role][si] = scheduled hours
+  const rsh={};
+  // roleTaskSprintHours[role][taskId][si] = hours placed for this task in sprint si
+  const roleTaskSprintHours={};
+  ROLES.forEach(r=>{rsh[r]=new Array(MAX_SPRINTS).fill(0);roleTaskSprintHours[r]={};});
+
+  // rolePinReduction[role][si] = hours blocked in sprint si by pins targeting later sprints.
+  // Prevents greedy backfill from consuming the freed capacity.
+  const rolePinReduction={};
+  ROLES.forEach(r=>{rolePinReduction[r]=new Array(MAX_SPRINTS).fill(0);});
+  for(const task of sortedTasks){
+    for(const [role,pinnedSprint] of Object.entries(task.rolePinnedSprint||{})){
+      const hrs=(task.estimates||{})[role]||0;
+      if(!hrs||pinnedSprint<=1) continue;
+      // Block hrs in every sprint before the pinned sprint (0-based: si < pinnedSprint-1)
+      for(let si=0;si<pinnedSprint-1&&si<MAX_SPRINTS;si++){
+        rolePinReduction[role][si]+=hrs;
+      }
+    }
+  }
+
+  function effectiveCap(role, si){
+    return Math.max(0,(sprintCapacity(role)||80)-(rolePinReduction[role][si]||0));
+  }
+
+  function getFirstAvailableSprint(role, hrs, afterSprint){
+    for(let si=Math.max(0,afterSprint);si<MAX_SPRINTS;si++){
+      if(effectiveCap(role,si)-(roleUsed[role][si]||0)>0) return si;
+    }
+    return MAX_SPRINTS-1;
+  }
+
+  function placeRoleHours(role, hrs, startSi, taskId){
+    let remaining=hrs;
+    let curSi=startSi;
+    while(remaining>0&&curSi<MAX_SPRINTS){
+      const free=effectiveCap(role,curSi)-(roleUsed[role][curSi]||0);
+      if(free<=0){curSi++;continue;}
+      const place=Math.min(remaining,free);
+      roleUsed[role][curSi]=(roleUsed[role][curSi]||0)+place;
+      rsh[role][curSi]=(rsh[role][curSi]||0)+place;
+      if(taskId!==undefined){
+        if(!roleTaskSprintHours[role][taskId]) roleTaskSprintHours[role][taskId]={};
+        roleTaskSprintHours[role][taskId][curSi]=(roleTaskSprintHours[role][taskId][curSi]||0)+place;
+      }
+      remaining-=place;
+      if(remaining>0) curSi++;
+    }
+    return curSi; // last sprint used
+  }
+
+  for(const task of sortedTasks){
+    const est=task.estimates||{};
+    const order=task.roleOrder||DEFAULT_ORDER;
+
+    // Group roles by order number (only roles with hours)
+    const groups={};
+    for(const [role,hrs] of Object.entries(est)){
+      if(!hrs||hrs===0) continue;
+      const o=order[role]||1;
+      if(!groups[o]) groups[o]=[];
+      groups[o].push(role);
+    }
+    if(Object.keys(groups).length===0) continue;
+
+    let groupFinishSprint=0; // next group starts after this sprint
+
+    for(const g of Object.keys(groups).map(Number).sort((a,b)=>a-b)){
+      const rolesInGroup=groups[g];
+      let groupEndSprint=0;
+
+      for(const role of rolesInGroup){
+        const hrs=est[role]||0;
+        if(!hrs) continue;
+        // Respect per-role pinned sprint (rolePinnedSprint[role] = 1-based sprint num)
+        const rolePinned=(task.rolePinnedSprint||{})[role];
+        const minSi=rolePinned?Math.max(groupFinishSprint,rolePinned-1):groupFinishSprint;
+        const startSi=getFirstAvailableSprint(role,hrs,minSi);
+        roleTaskSprint[role][task.id]=startSi;
+        const endSi=placeRoleHours(role,hrs,startSi,task.id);
+        groupEndSprint=Math.max(groupEndSprint,endSi);
+        // Primary sprint = first group's first sprint
+        if(!task.assignedSprint) task.assignedSprint=startSi+1;
+      }
+
+      groupFinishSprint=groupEndSprint+1;
+    }
+  }
+
+  window.roleSprintHours=rsh;
+  window.roleTaskSprint=roleTaskSprint;
+  window.roleTaskSprintHours=roleTaskSprintHours;
+
+  // Build sprint items: task appears in every sprint where any role works
+  const sprintMap={};
+  for(let si=0;si<MAX_SPRINTS;si++) sprintMap[si]={num:si+1,items:[],totalHours:0};
+
+  for(const task of sortedTasks){
+    const taskSprints=new Set();
+    // Include every sprint where ANY role has hours for this task (covers splits/spills)
+    for(const role of ROLES){
+      const sprintMap2=roleTaskSprintHours[role][task.id]||{};
+      for(const si of Object.keys(sprintMap2)){
+        if(sprintMap2[si]>0) taskSprints.add(Number(si));
+      }
+    }
+    if(taskSprints.size===0) continue;
+
+    const primarySi=(task.assignedSprint||1)-1;
+    const totalH=Object.values(task.estimates||{}).reduce((s,v)=>s+(v||0),0)||taskEffectiveHours(task)||0;
+
+    [...taskSprints].sort((a,b)=>a-b).forEach(si=>{
+      if(si>=MAX_SPRINTS) return;
+      const isCont=si!==primarySi;
+      // Sum of ALL role hours for this task in this exact sprint
+      const sprintRoleH=ROLES.reduce((s,r)=>s+((roleTaskSprintHours[r][task.id]||{})[si]||0),0);
+      sprintMap[si].items.push({
+        taskId:task.id,partIndex:null,
+        name:task.name+(isCont?' ↩':''),
+        label:isCont?'продолж.':null,
+        hours:isCont?sprintRoleH:totalH,
+        priority:task.priority,isSplit:isCont,
+        link:task.link,assignedSprint:primarySi+1
+      });
+    });
+  }
+
+  for(let si=0;si<MAX_SPRINTS;si++){
+    sprintMap[si].totalHours=ROLES.reduce((s,r)=>s+(rsh[r][si]||0),0);
+    if(sprintMap[si].items.length>0) window.sprints.push(sprintMap[si]);
+  }
+};
+// Role order drag-and-drop
+let _dragRole=null;
+function dragRoleStart(e,role,taskId){
+  _dragRole={role,taskId};
+  e.dataTransfer.effectAllowed='move';
+}
+function dropRoleToGroup(e,taskId,group){
+  e.preventDefault();
+  e.currentTarget.style.borderColor='var(--border)';
+  if(!_dragRole||_dragRole.taskId!==taskId) return;
+  const task=window.tasks.find(t=>t.id===taskId);
+  if(!task) return;
+  if(!task.roleOrder) task.roleOrder={'BA':1,'Дизайн':1,'Back Api':2,'Back Front':2,'WEB/Mobile Api':2,'WEB Front':3,'Android':3,'iOS':3,'QA':4};
+  task.roleOrder[_dragRole.role]=group;
+  // Compact groups (remove gaps)
+  const vals=[...new Set(Object.values(task.roleOrder))].sort((a,b)=>a-b);
+  const remap={};vals.forEach((v,i)=>remap[v]=i+1);
+  Object.keys(task.roleOrder).forEach(r=>task.roleOrder[r]=remap[task.roleOrder[r]]);
+  _dragRole=null;
+  triggerSave(); window.autoAssignSprints(); renderAll();
+  setTimeout(()=>openTaskModal(taskId),50);
+}
+// Legacy - keep for compat
+let dragRole=null, dragTaskId=null;
+document.addEventListener('dragstart',e=>{
+  const chip=e.target.closest('.role-order-chip');
+  if(!chip) return;
+  dragRole=chip.dataset.role;
+  dragTaskId=parseInt(chip.dataset.taskid);
+  e.dataTransfer.effectAllowed='move';
+});
+document.addEventListener('dragover',e=>{
+  const group=e.target.closest('.role-order-group');
+  if(group) {e.preventDefault();group.style.background='var(--accent-light,#e8f0fe)';}
+});
+document.addEventListener('dragleave',e=>{
+  const group=e.target.closest('.role-order-group');
+  if(group) group.style.background='var(--bg2)';
+});
+document.addEventListener('drop',e=>{
+  const group=e.target.closest('.role-order-group');
+  if(!group||!dragRole||!dragTaskId) return;
+  e.preventDefault();
+  group.style.background='var(--bg2)';
+  const targetGroup=parseInt(group.dataset.group);
+  const task=window.tasks.find(t=>t.id===dragTaskId);
+  if(!task) return;
+  if(!task.roleOrder) task.roleOrder={'BA':1,'Дизайн':1,'Back Api':2,'Back Front':2,'WEB/Mobile Api':2,'WEB Front':3,'Android':3,'iOS':3,'QA':4};
+  task.roleOrder[dragRole]=targetGroup;
+  triggerSave();
+  window.autoAssignSprints();
+  renderAll();
+  // Re-open card
+  setTimeout(()=>openTaskModal(dragTaskId),50);
+});
+
+function addRoleOrderGroup(taskId){
+  const task=window.tasks.find(t=>t.id===taskId);
+  if(!task||!task.roleOrder) return;
+  const maxG=Math.max(...Object.values(task.roleOrder));
+  Object.keys(task.roleOrder).forEach(r=>{if(task.roleOrder[r]===maxG) task.roleOrder[r]=maxG+1;});
+  triggerSave(); window.autoAssignSprints(); renderAll();
+  setTimeout(()=>openTaskModal(taskId),50);
+}
+
+function resetRoleOrder(taskId){
+  const task=window.tasks.find(t=>t.id===taskId);
+  if(!task) return;
+  task.roleOrder={'BA':1,'Дизайн':1,'Back Api':2,'Back Front':2,'WEB/Mobile Api':2,'WEB Front':3,'Android':3,'iOS':3,'QA':4};
+  triggerSave(); window.autoAssignSprints(); renderAll();
+  setTimeout(()=>openTaskModal(taskId),50);
+}
+
+function pctReal(h,cap){return Math.round(h/cap*100);}
+function barWidth(h,cap){return Math.min(100,pctReal(h,cap));}
+function barClass(h,cap){const p=pctReal(h,cap);return p>100?'bar-over':p>85?'bar-warn':'bar-ok';}
+function pctLabel(h,cap){const p=pctReal(h,cap);return p>100?`<span class="badge badge-over">${p}% ⚠</span>`:`<span style="font-size:12px;color:var(--text2)">${p}%</span>`;}
+
+function triggerSave(){if(window.scheduleSave)window.scheduleSave();}
+
+function openLinkModal(id){
+  linkTargetId=id;const t=window.tasks.find(t=>t.id===id);
+  document.getElementById('link-task-name').textContent=t.name;
+  document.getElementById('link-input').value=t.link||'';
+  document.getElementById('link-modal').style.display='flex';
+  setTimeout(()=>document.getElementById('link-input').focus(),50);
+}
+function closeLinkModal(){document.getElementById('link-modal').style.display='none';linkTargetId=null;}
+function applyLink(){const t=window.tasks.find(t=>t.id===linkTargetId);if(!t)return;let val=document.getElementById('link-input').value.trim();if(val&&!val.match(/^https?:\/\//))val='https://'+val;t.link=val||null;closeLinkModal();triggerSave();renderAll();}
+function clearLink(){const t=window.tasks.find(t=>t.id===linkTargetId);if(t)t.link=null;closeLinkModal();triggerSave();renderAll();}
+function linkBtn(taskId,link){
+  if(link)return `<span style="display:inline-flex;gap:3px;align-items:center;"><a href="${link}" target="_blank" rel="noopener noreferrer" style="font-size:15px;text-decoration:none;cursor:pointer;" onclick="event.stopPropagation();window.open('${link}','_blank');return false;">🔗</a><button class="btn btn-ghost btn-sm" onclick="openLinkModal(${taskId})" style="padding:2px 6px;">✏</button></span>`;
+  return `<button class="btn btn-ghost btn-sm" onclick="openLinkModal(${taskId})" style="padding:2px 8px;font-size:11px;">+ 🔗</button>`;
+}
+function openSplit(id){
+  splitTargetId=id;const t=window.tasks.find(t=>t.id===id),h=taskEffectiveHours(t);
+  document.getElementById('split-title').textContent='Разбивка на части';
+  document.getElementById('split-sub').textContent=`${t.name} · ${h||'?'} ч`;
+  splitDraft=t.splits?t.splits.map(s=>({...s})):[{label:'Часть 1',hours:h||0}];
+  renderSplitModal();document.getElementById('split-modal').style.display='flex';
+}
+function closeSplit(){document.getElementById('split-modal').style.display='none';splitTargetId=null;}
+function renderSplitModal(){
+  const t=window.tasks.find(t=>t.id===splitTargetId);
+  const maxSp=Math.max(window.sprints.length+2,8);
+  const spOptions='<option value="">авто</option>'+Array.from({length:maxSp},(_,i)=>'<option value="'+(i+1)+'">'+'S'+(i+1)+'</option>').join('');
+  document.getElementById('split-parts').innerHTML=splitDraft.map((p,i)=>{
+    const pinnedVal=(t&&t.pinnedPartSprints&&t.pinnedPartSprints[i]!=null)?t.pinnedPartSprints[i]:'';
+    return '<div class="modal-part" style="grid-template-columns:1fr 80px 70px 32px;">'+
+      '<input type="text" value="'+p.label+'" oninput="splitDraft['+i+'].label=this.value;updateSplitStatus()">'+
+      '<input type="number" value="'+(p.hours||'')+'" min="0" placeholder="ч" oninput="splitDraft['+i+'].hours=parseFloat(this.value)||0;updateSplitStatus()">'+
+      '<select onchange="setPinnedPartSprint(splitTargetId,'+i+',this.value)" style="font-size:11px;height:32px;" title="Закрепить за спринтом">'+spOptions.replace('value="'+pinnedVal+'"','value="'+pinnedVal+'" selected')+'</select>'+
+      '<button class="btn btn-ghost btn-sm" style="padding:3px 8px;" onclick="removeSplitPart('+i+')">✕</button>'+
+    '</div>';
+  }).join('');
+  updateSplitStatus();
+}
+function updateSplitStatus(){
+  const t=window.tasks.find(t=>t.id===splitTargetId),total=taskEffectiveHours(t)||0;
+  const used=splitDraft.reduce((s,p)=>s+(p.hours||0),0),diff=Math.round((total-used)*10)/10;
+  document.getElementById('split-status').innerHTML=Math.abs(diff)<0.1?`<div class="split-ok">✓ ${used} ч из ${total} ч</div>`:diff>0?`<div class="split-warning">Не распределено: ${diff} ч</div>`:`<div class="split-warning">Превышение на ${Math.abs(diff)} ч</div>`;
+}
+function addSplitPart(){splitDraft.push({label:`Часть ${splitDraft.length+1}`,hours:0});renderSplitModal();}
+function removeSplitPart(i){splitDraft.splice(i,1);renderSplitModal();}
+function applySplit(){
+  const t=window.tasks.find(t=>t.id===splitTargetId);
+  t.splits=splitDraft.length<=1?null:splitDraft.map(p=>({label:p.label,hours:p.hours||0}));
+  closeSplit();window.autoAssignSprints();triggerSave();renderAll();
+}
+
+function renderRoadmap(){
+  if(!window.sprints.length){document.getElementById('tab-roadmap').innerHTML=`<div class="no-data">Нет данных — задайте состав команды и добавьте оценки к задачам</div>`;return;}
+  const dates=sprintDates(),totalStart=dates[0].start,totalEnd=dates[dates.length-1].end,totalMs=totalEnd-totalStart||1;
+  const months=[];let mc=new Date(totalStart);mc.setDate(1);
+  while(mc<=totalEnd){months.push(new Date(mc));mc.setMonth(mc.getMonth()+1);}
+  const today=new Date();today.setHours(0,0,0,0);
+  const todayPct=today>=totalStart&&today<=totalEnd?((today-totalStart)/totalMs*100):null;
+  const dateVal=window.startDate.toISOString().split('T')[0];
+  const cap=totalSprintCapacity();
+  let html=`<div class="grid-4">
+    <div class="metric"><div class="label">Старт спринта 1</div><div style="margin-top:8px;"><input type="date" value="${dateVal}" onchange="setStartDate(this.value)"></div></div>
+    <div class="metric"><div class="label">Спринтов всего</div><div class="value">${window.sprints.length}</div></div>
+    <div class="metric"><div class="label">Конец последнего</div><div class="value" style="font-size:16px;">${fmtDate(totalEnd)}.${totalEnd.getFullYear()}</div></div>
+    <div class="metric"><div class="label">Длина спринта</div><div class="value" style="font-size:16px;">${window.team.workDaysPerSprint} раб. дн.</div></div>
+  </div>
+  <div class="card"><div class="section-title">Timeline</div><div class="roadmap-wrap"><div style="min-width:560px;">
+    <div style="display:flex;margin-bottom:8px;margin-left:160px;">`;
+  months.forEach(m=>{
+    const mS=new Date(Math.max(m,totalStart)),mE=new Date(Math.min(new Date(m.getFullYear(),m.getMonth()+1,0),totalEnd));
+    const mPct=((mE-mS)/totalMs*100);
+    const mLabel=m.toLocaleDateString('ru-RU',{month:'short',year:'2-digit'});
+    // Only show label if the column is wide enough (>6%)
+    html+=`<div style="width:${mPct}%;font-size:11px;color:var(--text3);border-left:1px solid var(--border);padding-left:5px;min-width:0;overflow:hidden;white-space:nowrap;">${mPct>6?mLabel:''}</div>`;
+  });
+  html+=`</div>`;
+  window.sprints.forEach((s,i)=>{
+    const d=dates[i],color=SPRINT_COLORS[i%SPRINT_COLORS.length];
+    const lp=((d.start-totalStart)/totalMs*100),wp=((d.end-d.start+86400000)/totalMs*100);
+    const pct=pctReal(s.totalHours,cap);
+    html+=`<div style="display:flex;align-items:center;margin-bottom:6px;">
+      <div style="width:160px;flex-shrink:0;padding-right:12px;cursor:pointer;" onclick="goToSprint(${s.num})" title="Открыть спринт ${s.num}">
+        <div style="font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px;">Спринт ${s.num} <span style="font-size:10px;color:var(--text3);">→</span></div>
+        <div style="font-size:10px;color:var(--text3);">${fmtDate(d.start)} — ${fmtDate(d.end)}</div>
+      </div>
+      <div style="flex:1;position:relative;height:56px;background:var(--bg2);border-radius:6px;">
+        ${todayPct!==null?'<div style="position:absolute;left:'+todayPct+'%;top:0;bottom:0;width:2px;background:#C0392B;z-index:3;border-radius:1px;"></div>':''}
+        <div onclick="goToSprint(${s.num})" style="cursor:pointer;position:absolute;left:${lp}%;width:${wp}%;top:4px;height:48px;background:${color};border-radius:5px;display:flex;align-items:center;padding:0 14px;font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'" title="Открыть спринт ${s.num}">
+          ${wp>15?'S'+s.num+' · '+s.totalHours+'ч · '+pct+'%':wp>7?'S'+s.num+' · '+pct+'%':wp>3?'S'+s.num:''}
+        </div>
+      </div>
+    </div>`;
+  });
+  if(todayPct!==null)html+=`<div style="margin-left:160px;position:relative;height:16px;"><div style="position:absolute;left:${todayPct}%;transform:translateX(-50%);font-size:10px;color:#C0392B;font-weight:600;">сегодня</div></div>`;
+  html+=`</div></div></div>`;
+  html+=`<div class="card"><div class="section-title">Детализация</div>
+  <div style="display:grid;grid-template-columns:60px 100px 100px 1fr 100px;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;">
+    <span>Спринт</span><span>Старт</span><span>Конец</span><span>Задачи</span><span style="text-align:right">Загрузка</span>
+  </div>`;
+  window.sprints.forEach((s,i)=>{
+    const d=dates[i],color=SPRINT_COLORS[i%SPRINT_COLORS.length];
+    const names=s.items.slice(0,3).map(it=>it.isSplit?(it.name+' ('+it.label+')'):it.name).join(', ')+(s.items.length>3?' +'+(s.items.length-3):'');
+    const detailCap=cap;
+    html+=`<div style="display:grid;grid-template-columns:60px 100px 100px 1fr 100px;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);align-items:center;font-size:12px;">
+      <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:50%;background:${color};display:inline-block;"></span>S${s.num}</span>
+      <span>${fmtDateFull(d.start)}</span><span>${fmtDateFull(d.end)}</span>
+      <span style="color:var(--text3);font-size:11px;">${names}</span>
+      <span style="text-align:right;">${pctLabel(s.totalHours,detailCap)}</span>
+    </div>`;
+  });
+  html+=`</div>`;
+  document.getElementById('tab-roadmap').innerHTML=html;
+}
+function setStartDate(val){if(!val)return;window.startDate=new Date(val);window.startDate.setHours(0,0,0,0);triggerSave();renderAll();}
+
+function renderBacklog(){
+  const estimated=window.tasks.filter(t=>taskEffectiveHours(t)!==null).length;
+  const totalKnown=window.tasks.reduce((s,t)=>s+(taskEffectiveHours(t)||0),0);
+  const search=(document.getElementById('bl-search')?.value||'').toLowerCase();
+  const fEst=document.getElementById('bl-est')?.value||'all';
+  const noPrio=window.tasks.filter(t=>t.priority===null).length;
+  const noEst=window.tasks.length-estimated;
+  let html=`<div class="grid-5">
+    <div class="metric"><div class="label">Всего задач</div><div class="value">${window.tasks.length}</div></div>
+    <div class="metric"><div class="label">С оценкой</div><div class="value">${estimated}</div></div>
+    <div class="metric"><div class="label">Без оценки</div><div class="value">${noEst}</div></div>
+    <div class="metric"><div class="label">Без приоритета</div><div class="value">${noPrio}</div></div>
+    <div class="metric"><div class="label">Суммарно часов</div><div class="value">${totalKnown}</div></div>
+  </div>`;
+  html+=`<div class="filter-row">
+    <input type="text" id="bl-search" placeholder="Поиск задачи..." oninput="renderBacklog()" style="flex:1;min-width:160px;" value="${search}">
+    <select id="bl-est" onchange="renderBacklog()">
+      <option value="all"${fEst==='all'?' selected':''}>Все задачи</option>
+      <option value="yes"${fEst==='yes'?' selected':''}>С оценкой</option>
+      <option value="no"${fEst==='no'?' selected':''}>Без оценки</option>
+    </select>
+  </div>`;
+  const filtered=window.tasks.filter(t=>{
+    if(search&&!t.name.toLowerCase().includes(search))return false;
+    const h=taskEffectiveHours(t);
+    if(fEst==='yes'&&!h)return false;if(fEst==='no'&&h)return false;return true;
+  });
+  html+=`<div class="card" style="padding:0 20px;">
+  <div style="display:grid;grid-template-columns:16px 28px 1fr 110px 64px 70px 64px;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;">
+    <span></span><span>№</span><span>Задача</span><span>Оценка</span><span>Разбить</span><span style="text-align:center">Ссылка</span><span style="text-align:center">Спринт</span>
+  </div>`;
+  filtered.forEach(t=>{
+    const h=taskEffectiveHours(t),hasSplit=t.splits&&t.splits.length>1;
+    // Find all sprints where any role works on this task
+    const rts_=window.roleTaskSprint||{};
+    const allSps=[...new Set(Object.values(rts_).map(m=>m[t.id]).filter(s=>s!==undefined))].sort((a,b)=>a-b).map(s=>s+1);
+    let sp;
+    if(allSps.length>1){
+      const spLabel=allSps.length>2?'S'+allSps[0]+'→S'+allSps[allSps.length-1]:('S'+allSps[0]+'→S'+allSps[1]);
+      sp='<span class="badge badge-split">'+spLabel+'</span>';
+    } else if(allSps.length===1){
+      sp='<span class="badge badge-s">S'+allSps[0]+'</span>';
+    } else {
+      sp=t.assignedSprint?'<span class="badge badge-s">S'+t.assignedSprint+'</span>':'<span class="badge badge-none">—</span>';
+    }
+    const curVal=t.manualEst!==null?t.manualEst:(h||'');
+    html+=`<div id="drag-row-${t.id}" class="task-drag-row" style="display:grid;grid-template-columns:16px 28px 1fr 110px 64px 70px 64px;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);align-items:start;font-size:12px;"
+      draggable="true" ondragstart="onDragStart(event,${t.id})" ondragend="onDragEnd(event)" ondragover="onDragOver(event,${t.id})" ondrop="onDrop(event,${t.id})">
+      <div style="padding-top:3px"><span class="drag-handle" title="Перетащить для изменения приоритета">⠿</span></div>
+      <div style="padding-top:3px">
+        ${t.priority!==null
+          ? '<span class="pnum">'+t.priority+'</span>'
+          : '<span class="pnum" onclick="assignNextPriority('+t.id+')" title="Поставить в конец очереди" style="cursor:pointer;background:#FAEEDA;color:#854F0B;font-size:9px;font-weight:700;">+</span>'
+        }
+      </div>
+      <div style="line-height:1.45;cursor:pointer;" onclick="openTaskModal(${t.id})" title="Открыть карточку задачи">
+        <span style="border-bottom:1px dashed var(--border2);">${t.name}</span>
+        ${t.comments&&t.comments.length?'<span style="margin-left:5px;font-size:10px;background:var(--blue-bg);color:var(--blue);border-radius:99px;padding:1px 6px;font-weight:600;">💬 '+t.comments.length+'</span>':''}
+        ${hasSplit?'<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:3px">'+t.splits.map((p,i)=>'<span class="part-chip">Ч'+(i+1)+': '+p.hours+'ч</span>').join(' ')+'</div>':''}
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;gap:5px;">
+          <input type="number" value="${curVal}" min="0" placeholder="+ ч" style="width:64px;"
+  oninput="setManualEst(${t.id},this.value,true)"
+  onblur="setManualEst(${t.id},this.value,false)">
+          ${t.manualEst!==null?'<span style="font-size:10px;color:var(--text3)">ручн.</span>':''}
+        </div>
+        <div style="margin-top:5px;">${confidenceBadge(t.confidence)}</div>
+        ${t.normHours&&t.manualEst===null?'<div style="font-size:10px;color:var(--text3);margin-top:2px">норма: '+t.normHours+' нч</div>':''}
+      </div>
+      <div style="padding-top:3px;">${h?'<button class="btn btn-ghost btn-sm" onclick="openSplit('+t.id+')">'+( hasSplit?'✏':'✂')+'</button>':'—'}</div>
+      <div style="text-align:center;padding-top:3px;">${linkBtn(t.id,t.link)}</div>
+      <div style="text-align:center;padding-top:3px">${sp}</div>
+    </div>`;
+  });
+  html+=`</div>`;
+  document.getElementById('tab-backlog').innerHTML=html;
+}
+function setManualEst(id,val,skipBacklogRender){
+  const t=window.tasks.find(t=>t.id===id);if(!t)return;
+  const v=parseFloat(val);t.manualEst=(isNaN(v)||v<0)?null:v;t.splits=null;
+  window.autoAssignSprints();triggerSave();
+  if(skipBacklogRender){
+    // Only re-render other tabs, not backlog (user is still editing)
+    renderRoadmap();renderTeam();renderSprints();renderLoad();
+  } else {
+    renderAll();
+  }
+}
+
+function renderTeam(){
+  const hpp=hoursPerPerson(),totalCap=totalSprintCapacity();
+  let html=`<div class="grid-3">
+    <div class="metric"><div class="label">Ёмкость спринта</div><div class="value">${totalCap} ч</div><div class="msub">${totalPeople()} чел. × ${hpp} ч</div></div>
+    <div class="metric"><div class="label">Часов на человека</div><div class="value">${hpp} ч</div><div class="msub">${window.team.workDaysPerSprint} раб. дней × ${window.team.hoursPerDay} ч</div></div>
+    <div class="metric"><div class="label">Параметры спринта</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:8px;">
+        <div style="display:flex;align-items:center;gap:5px;"><input type="number" id="sprint-days" value="${window.team.workDaysPerSprint}" min="1" max="25" style="width:52px" onchange="updateSprintSettings()"><span style="font-size:12px;color:var(--text3)">раб. дней</span></div>
+        <div style="display:flex;align-items:center;gap:5px;"><input type="number" id="hours-day" value="${window.team.hoursPerDay}" min="1" max="12" style="width:52px" onchange="updateSprintSettings()"><span style="font-size:12px;color:var(--text3)">ч/день</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="card"><div class="section-title">Состав команды</div>
+  <div style="display:grid;grid-template-columns:160px 60px 1fr 90px;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;">
+    <span>Роль</span><span style="text-align:center">Чел.</span><span>Доступность</span><span style="text-align:right">Ёмкость</span>
+  </div>`;
+  ROLES.forEach(r=>{
+    const count=window.team.roles[r]||0;
+    const pct=(window.team.roleCapacity||{})[r]!=null?(window.team.roleCapacity||{})[r]:100;
+    const cap=sprintCapacity(r);
+    const pctColor=pct===0?'#C0392B':pct<100?'#D4840A':'#3D7A1E';
+    const btn = (v,label) => '<button class="btn btn-ghost btn-sm" onclick="setRoleCapacity(\''+r+'\','+v+')" style="padding:2px 7px;font-size:11px;'+(pct===v?'background:var(--text);color:#fff;':'')+'">' + label + '</button>';
+    html+=`<div style="display:grid;grid-template-columns:160px 60px 1fr 90px;gap:8px;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);">
+      <span style="font-size:13px;font-weight:500">${r}</span>
+      <div style="text-align:center"><input type="number" value="${count}" min="0" max="20" onchange="updateRole('${r}',this.value)" style="width:52px;text-align:center;"></div>
+      <div style="display:flex;align-items:center;gap:5px;">
+        ${btn(0,'0%')}${btn(50,'50%')}${btn(100,'100%')}
+        <span style="font-size:12px;font-weight:600;color:${pctColor};margin-left:2px;">${pct}%</span>
+      </div>
+      <div style="text-align:right;font-size:13px;color:var(--text3);font-family:'DM Mono',monospace;">${cap} ч</div>
+    </div>`;
+  });
+  html+=`</div>`;
+
+  // bugfix moved to per-sprint
+
+  document.getElementById('tab-team').innerHTML=html;
+}
+function setBugfix(sprintNum, val){
+  if(!window.team.bugfixBySprint) window.team.bugfixBySprint={};
+  window.team.bugfixBySprint[sprintNum]=parseInt(val)||0;
+  triggerSave();renderSprints();
+}
+function updateBugfix(val){
+  window.team.bugfixPct=Math.min(80,Math.max(0,parseInt(val)||0));
+  window.autoAssignSprints();triggerSave();renderAll();
+}
+
+function setPinnedPartSprint(taskId, partIndex, sprintNum){
+  const t = window.tasks.find(t=>t.id===taskId);
+  if(!t) return;
+  if(!t.pinnedPartSprints) t.pinnedPartSprints={};
+  if(sprintNum===''||sprintNum===null){
+    delete t.pinnedPartSprints[partIndex];
+  } else {
+    t.pinnedPartSprints[partIndex]=parseInt(sprintNum);
+  }
+  window.autoAssignSprints();
+  triggerSave();
+  renderAll();
+}
+function removePriority(taskId){
+  const t = window.tasks.find(t=>t.id===taskId);
+  if(!t) return;
+  t.priority = null;
+  // Renumber remaining priorities sequentially
+  let p = 1;
+  window.tasks.filter(t=>t.priority!==null).sort((a,b)=>a.priority-b.priority).forEach(t=>t.priority=p++);
+  window.autoAssignSprints();
+  triggerSave();
+  renderAll();
+}
+function assignNextPriority(taskId){
+  const maxP = Math.max(0, ...window.tasks.filter(t=>t.priority!==null).map(t=>t.priority));
+  const t = window.tasks.find(t=>t.id===taskId);
+  if(!t) return;
+  t.priority = maxP + 1;
+  window.autoAssignSprints();
+  triggerSave();
+  renderAll();
+}
+
+function assignAllUnprioritized(){
+  let maxP = Math.max(0, ...window.tasks.filter(t=>t.priority!==null).map(t=>t.priority));
+  window.tasks.filter(t=>t.priority===null).forEach(t=>{
+    t.priority = ++maxP;
+  });
+  window.autoAssignSprints();
+  triggerSave();
+  renderAll();
+}
+
+function setRoleCapacity(role, pct){
+  if(!window.team.roleCapacity) window.team.roleCapacity={};
+  window.team.roleCapacity[role]=pct;
+  window.autoAssignSprints();triggerSave();renderAll();
+}
+function updateRole(role,val){window.team.roles[role]=Math.max(0,parseInt(val)||0);window.autoAssignSprints();triggerSave();renderAll();}
+function updateSprintSettings(){
+  const d=document.getElementById('sprint-days'),h=document.getElementById('hours-day');
+  if(d)window.team.workDaysPerSprint=Math.max(1,parseInt(d.value)||10);
+  if(h)window.team.hoursPerDay=Math.max(1,parseInt(h.value)||8);
+  window.autoAssignSprints();triggerSave();renderAll();
+}
+
+
+
+function confidenceBadge(conf){
+  if(conf===null||conf===undefined) return '<span style="font-size:10px;color:var(--text3);border:1px dashed var(--border2);border-radius:99px;padding:1px 7px;">conf?</span>';
+  const c = parseInt(conf);
+  let bg, color;
+  if(c >= 80){ bg='#EAF3DE'; color='#3D7A1E'; }
+  else if(c >= 50){ bg='#FAEEDA'; color='#854F0B'; }
+  else { bg='#FCEBEB'; color='#A32D2D'; }
+  return `<span style="font-size:10px;font-weight:600;background:${bg};color:${color};border-radius:99px;padding:2px 7px;">${c}%</span>`;
+}
+
+function renderSprintGantt(s, sprintColor){
+  // Assign a stable color per task (by taskId)
+  const TASK_PALETTE = [
+    '#2C5F9E','#3D7A1E','#7B3FB0','#C0640A','#0F7A6A','#B03030',
+    '#1E77B4','#7A3AA8','#207A40','#B05000','#5B7A1E','#9E2C5F',
+    '#2E86AB','#A23B72','#F18F01','#C73E1D','#3B1F2B','#44BBA4'
+  ];
+  // Build task color map for this sprint — consistent per taskId
+  const taskIds = [...new Set(s.items.map(i => i.taskId))];
+  const taskColorMap = {};
+  taskIds.forEach((id, idx) => { taskColorMap[id] = TASK_PALETTE[idx % TASK_PALETTE.length]; });
+
+  const sprintCap = effectiveSprintCapacity(s.num);
+  let html = '<div style="margin-top:8px;margin-bottom:4px;">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">';
+  html += '<div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Загрузка по ролям</div>';
+  // Legend
+  html += '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
+  s.items.forEach(item => {
+    const color = taskColorMap[item.taskId];
+    const label = item.isSplit ? item.name + ' (' + item.label + ')' : item.name;
+    const shortLabel = label.length > 30 ? label.slice(0,28) + '…' : label;
+    html += `<span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);">
+      <span style="width:10px;height:10px;border-radius:2px;background:${color};flex-shrink:0;display:inline-block;"></span>${shortLabel}
+    </span>`;
+  });
+  html += '</div></div>';
+
+  const si = s.num - 1;
+  const rsh = (window.roleSprintHours||{}); // roleSprintHours[role][sprintIdx]
+
+  const activeRoles = ROLES.filter(r => {
+    const count = window.team.roles[r] || 0;
+    if(count === 0) return false;
+    return (rsh[r] && rsh[r][si] > 0) ||
+      s.items.some(item => {
+        const t = window.tasks.find(t => t.id === item.taskId);
+        return t && t.estimates[r] > 0;
+      });
+  });
+
+  if(activeRoles.length === 0){
+    html += '<div style="font-size:12px;color:var(--text3);padding:8px 0 12px;">Нет детальных оценок по ролям — откройте задачу и добавьте оценки</div>';
+  } else {
+    activeRoles.forEach(role => {
+      const cap = sprintCapacity(role);
+      const bars = [];
+      let totalUsed = 0;
+      s.items.forEach(item => {
+        const t = window.tasks.find(t => t.id === item.taskId);
+        if(!t) return;
+        // Exact hours placed for this role/task in this sprint
+        const rtsh = window.roleTaskSprintHours||{};
+        const hrs = ((rtsh[role]||{})[item.taskId]||{})[si] || 0;
+        if(hrs <= 0) return;
+        totalUsed += hrs;
+        bars.push({ taskId: item.taskId, name: item.isSplit ? item.name+' ('+item.label+')' : item.name, hours: hrs, color: taskColorMap[item.taskId] });
+      });
+      if(bars.length === 0) return;
+
+      const over = totalUsed > cap;
+      const pct = cap > 0 ? Math.round(totalUsed/cap*100) : 0;
+      const panelId = `role-panel-${s.num}-${role.replace(/[ /]/g,'_')}`;
+
+      // Panel content: list of tasks for this role in this sprint
+      let panelHtml = '';
+      bars.forEach(bar => {
+        const isPinned = !!(window.tasks.find(t=>t.id===bar.taskId)?.rolePinnedSprint?.[role]);
+        panelHtml += `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">
+          <span style="flex:1;font-size:12px;line-height:1.35;">${bar.name}</span>
+          <span style="font-size:12px;font-family:'DM Mono',monospace;white-space:nowrap;">${bar.hours} ч</span>
+          <button class="btn btn-ghost btn-sm" onclick="moveRoleToNextSprint(${bar.taskId},'${role.replace(/'/g,"\\'")}',${s.num})" style="white-space:nowrap;font-size:11px;">→ S${s.num+1}</button>
+          ${isPinned?`<button class="btn btn-ghost btn-sm" onclick="clearRolePin(${bar.taskId},'${role.replace(/'/g,"\\'")}');" style="font-size:11px;color:var(--text3);" title="Снять закрепление">✕</button>`:''}
+        </div>`;
+      });
+
+      html += `<div style="margin-bottom:7px;">`;
+      html += `<div style="display:flex;align-items:center;">`;
+      html += `<div style="width:130px;flex-shrink:0;padding-right:10px;cursor:pointer;" onclick="toggleRolePanel('${panelId}')">
+        <div style="font-size:12px;font-weight:500;display:flex;align-items:center;gap:3px;">
+          <span style="border-bottom:1px dashed var(--border2);">${role}</span>
+          <span style="font-size:9px;color:var(--text3);">▾</span>
+        </div>
+        <div style="font-size:10px;color:${over?'var(--red)':'var(--text3)'};">${totalUsed}/${cap} ч · ${pct}%${over?' ⚠':''}</div>
+      </div>`;
+      html += `<div style="flex:1;position:relative;height:28px;background:var(--bg2);border-radius:4px;overflow:hidden;">`;
+
+      let offset = 0;
+      bars.forEach(bar => {
+        const w = cap > 0 ? (bar.hours / cap * 100) : 0;
+        const clamped = Math.min(w, 100 - offset);
+        if(clamped <= 0) return;
+        html += `<div style="position:absolute;left:${offset+0.2}%;width:${Math.max(clamped-0.3,0.3)}%;top:3px;height:22px;background:${bar.color};border-radius:3px;cursor:default;"
+          onmouseover="showGanttTip(event,'${bar.name.replace(/'/g,"\\'")} · ${bar.hours} ч')"
+          onmouseout="hideGanttTip()">
+        </div>`;
+        offset += w;
+      });
+
+      if(over){
+        html += `<div style="position:absolute;right:0;top:0;bottom:0;width:3px;background:var(--red);"></div>`;
+      }
+      html += '</div></div>';
+      html += `<div id="${panelId}" style="display:none;margin-left:130px;margin-top:4px;padding:6px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;">
+        ${panelHtml || '<div style="font-size:12px;color:var(--text3);">Нет задач</div>'}
+      </div>`;
+      html += '</div>';
+    });
+  }
+
+  html += '</div>';
+
+  // Task list with matching color dots
+  html += '<div style="border-top:1px solid var(--border);margin-top:6px;padding-top:10px;">';
+  html += '<div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Все задачи спринта</div>';
+  s.items.forEach(item => {
+    const color = taskColorMap[item.taskId];
+    const t = window.tasks.find(t => t.id === item.taskId);
+    const lnk = t && t.link ? `<a href="${t.link}" target="_blank" style="font-size:14px;text-decoration:none;" onclick="event.stopPropagation()">🔗</a>` : '';
+    const nameLabel = item.isSplit ? `${item.name} <span class="part-chip">${item.label}</span>` : item.name;
+    html += `<div style="display:grid;grid-template-columns:14px 28px 1fr 22px 80px 50px;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);align-items:start;font-size:12px;">
+      <div style="padding-top:4px;"><span style="width:10px;height:10px;border-radius:2px;background:${color};display:inline-block;flex-shrink:0;"></span></div>
+      <div style="padding-top:2px"><span class="pnum">${item.priority!==null?item.priority:'—'}</span></div>
+      <div style="cursor:pointer;" onclick="openTaskModal(${item.taskId})" title="Открыть карточку">
+        <span style="border-bottom:1px dashed var(--border2);">${nameLabel}</span>
+      </div>
+      <div style="padding-top:2px">${lnk}</div>
+      <div style="display:flex;align-items:center;gap:3px;"><input type="number" value="${item.hours}" min="0" style="width:52px;" onchange="setSplitPartHours(${item.taskId},${item.partIndex===null?'null':item.partIndex},this.value)"><span style="font-size:11px;color:var(--text3)">ч</span></div>
+      <div style="text-align:center;"><button class="btn btn-ghost btn-sm" onclick="openSplit(${item.taskId})" style="padding:2px 6px;">✂</button></div>
+    </div>`;
+  });
+  html += '</div>';
+
+  return html;
+}
+
+function renderSprints(){
+  const totalCapBase=totalSprintCapacity();
+  const cap=totalCapBase,dates=sprintDates();
+  const unest=window.tasks.filter(t=>taskEffectiveHours(t)===null);
+  let html=`<div class="summary-bar">
+    <div class="summary-item">Ёмкость: <span class="sv">${cap} ч</span></div>
+    <div class="summary-item">Спринтов: <span class="sv">${window.sprints.length}</span></div>
+    <div class="summary-item">Без оценки: <span class="sv">${unest.length}</span></div>
+  </div>`;
+  if(!cap){html+=`<div class="no-data">Задайте состав команды</div>`;document.getElementById('tab-sprints').innerHTML=html;return;}
+  window.sprints.forEach((s,i)=>{
+    const d=dates[i],color=SPRINT_COLORS[i%SPRINT_COLORS.length];
+    // Cap = sum of caps for roles that have work in this sprint
+    const sCap=totalCapBase;
+    const sBfPct=(window.team.bugfixBySprint||{})[s.num]||0;
+    const sBfHours=Math.round(totalCapBase*sBfPct/100);
+    html+=`<div class="sprint-block">
+      <div class="sprint-title-bar" onclick="toggleSprint(${s.num})" style="cursor:default;">
+        <div style="display:flex;align-items:center;gap:8px;flex:1;">
+          <span style="width:10px;height:10px;border-radius:50%;background:${color};display:inline-block;flex-shrink:0;"></span>
+          <span style="font-size:13px;font-weight:600;cursor:pointer;" onclick="toggleSprint(${s.num})">Спринт ${s.num}</span>
+          <span style="font-size:11px;color:var(--text3)">${fmtDate(d.start)}–${fmtDate(d.end)}</span>
+          <span style="font-size:12px;color:var(--text3)">${s.items.length} задач</span>
+          <span style="display:inline-flex;align-items:center;gap:4px;margin-left:4px;background:var(--red-bg);border-radius:99px;padding:2px 8px;font-size:11px;cursor:default;" onclick="event.stopPropagation()" title="Резерв на багфикс">
+            🐛
+            <select style="font-size:11px;border:none;background:transparent;color:var(--red);font-weight:600;cursor:pointer;padding:0;" onchange="setBugfix(${s.num},this.value)" onclick="event.stopPropagation()">
+              ${[0,5,10,15,20,25,30].map(v=>'<option value="'+v+'" '+(sBfPct===v?'selected':'')+'>'+((v===0)?'нет багфикс':v+'% багфикс')+'</option>').join('')}
+            </select>
+          </span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;cursor:pointer;" onclick="toggleSprint(${s.num})">
+          <span style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;">${s.totalHours}/${sCap} ч</span>${pctLabel(s.totalHours,sCap)}
+        </div>
+      </div>
+      <div style="padding:0 16px 8px;background:#fff;">
+        <div style="display:flex;height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;">
+          <div style="width:${barWidth(s.totalHours,sCap)}%;background:${barClass(s.totalHours,sCap)==='bar-over'?'#C0392B':barClass(s.totalHours,sCap)==='bar-warn'?'#D4840A':'#3D7A1E'};border-radius:4px 0 0 4px;transition:width .3s;"></div>
+          ${sBfPct>0?'<div style="width:'+sBfPct+'%;background:rgba(192,57,43,.25);border-left:1px dashed #C0392B;" title="Резерв багфикс: '+sBfHours+'ч"></div>':''}
+        </div>
+        ${sBfPct>0?'<div style="font-size:10px;color:var(--red);margin-top:3px;">🐛 Резерв на багфикс: '+sBfHours+' ч ('+sBfPct+'%)</div>':''}
+      </div>
+      <div id="sprint-body-${s.num}" class="sprint-body" style="display:none">
+        ${renderSprintGantt(s, color)}
+      </div>
+    </div>`;
+  });
+  if(unest.length){
+    html+=`<div class="sprint-block" style="border-color:#D4840A;">
+      <div class="sprint-title-bar" onclick="toggleSprint('unest')" style="background:var(--orange-bg);">
+        <span style="font-size:13px;font-weight:600;color:var(--orange)">Без оценки — ${unest.length} задач</span>
+      </div>
+      <div id="sprint-body-unest" class="sprint-body" style="display:none">
+        ${unest.map(t=>'<div style="display:grid;grid-template-columns:28px 1fr 80px 50px;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);align-items:center;font-size:12px;">'+
+          '<span class="pnum">'+(t.priority!==null?t.priority:'—')+'</span>'+
+          '<div style="cursor:pointer;" onclick="openTaskModal('+t.id+')" title="Открыть карточку задачи">'+
+            '<span style="border-bottom:1px dashed var(--border2);">'+t.name+'</span>'+
+          '</div>'+
+          '<div style="display:flex;align-items:center;gap:3px;"><input type="number" placeholder="ч" min="0" style="width:52px;" onchange="setManualEst('+t.id+',this.value)" onclick="event.stopPropagation()"><span style="font-size:11px;color:var(--text3)">ч</span></div>'+
+          '<div style="text-align:center;"><button class="btn btn-ghost btn-sm" onclick="openTaskModal('+t.id+')" style="padding:2px 8px;font-size:11px;">→</button></div>'+
+        '</div>').join('')}
+      </div>
+    </div>`;
+  }
+  document.getElementById('tab-sprints').innerHTML=html;
+}
+function setSplitPartHours(tid,pi,val){
+  const t=window.tasks.find(t=>t.id===tid);if(!t)return;
+  const v=parseFloat(val)||0;
+  if(pi===null||pi==='null')t.manualEst=v;
+  else if(t.splits&&t.splits[pi])t.splits[pi].hours=v;
+  window.autoAssignSprints();triggerSave();renderAll();
+}
+function toggleSprint(num){const el=document.getElementById(`sprint-body-${num}`);if(el)el.style.display=el.style.display==='none'?'block':'none';}
+
+function renderLoad(){
+  const cap=totalSprintCapacity();
+  if(!cap||!window.sprints.length){document.getElementById('tab-load').innerHTML=`<div class="no-data">Нет данных</div>`;return;}
+  const totalSpr=window.sprints.length,roleLoad={};
+  const rsh2=window.roleSprintHours||{};
+  ROLES.forEach(r=>{
+    // Cap = totalSprints × sprintCapacity(role) — same number of sprints for all roles
+    const totalSpr=window.sprints.length;
+    roleLoad[r]={used:0,cap:sprintCapacity(r)*totalSpr};
+    let total=0;
+    for(let si=0;si<totalSpr;si++) total+=(rsh2[r]&&rsh2[r][si])||0;
+    roleLoad[r].used=total;
+  });
+  const dates=sprintDates();
+  let html=`<div class="grid-3" style="margin-bottom:20px;">
+    <div class="metric"><div class="label">Спринтов</div><div class="value">${totalSpr}</div></div>
+    <div class="metric"><div class="label">Задач в плане</div><div class="value">${window.sprints.reduce((s,sp)=>s+sp.items.length,0)}</div></div>
+    <div class="metric"><div class="label">Без оценки</div><div class="value">${window.tasks.filter(t=>taskEffectiveHours(t)===null).length}</div></div>
+  </div>
+  <div class="card"><div class="section-title">Загрузка по ролям (${totalSpr} спринтов)</div>`;
+  ROLES.forEach(r=>{
+    const{used,cap:rc}=roleLoad[r],count=window.team.roles[r]||0;if(!rc&&!used)return;
+    html+=`<div class="role-load-row">
+      <span style="font-size:13px;font-weight:500">${r}</span>
+      <div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:4px;"><span>${count} чел.</span>${pctLabel(used,rc)}</div>
+        <div class="bar-wrap"><div class="bar-fill ${barClass(used,rc)}" style="width:${barWidth(used,rc)}%"></div></div>
+      </div>
+      <div style="text-align:right;font-size:12px;font-family:'DM Mono',monospace;">${used}/${rc} ч</div>
+    </div>`;
+  });
+  html+=`</div><div class="card"><div class="section-title">Загрузка по спринтам</div>`;
+  window.sprints.forEach((s,i)=>{
+    const d=dates[i],color=SPRINT_COLORS[i%SPRINT_COLORS.length];
+    const sCap=cap;
+    html+=`<div style="display:grid;grid-template-columns:70px 90px 1fr 150px;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);">
+      <span style="font-size:13px;font-weight:600;display:flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;border-radius:50%;background:${color};display:inline-block;"></span>S${s.num}</span>
+      <span style="font-size:11px;color:var(--text3)">${fmtDate(d.start)}–${fmtDate(d.end)}</span>
+      <div><div class="bar-wrap"><div class="bar-fill ${barClass(s.totalHours,sCap)}" style="width:${barWidth(s.totalHours,sCap)}%"></div></div></div>
+      <span style="font-size:12px;text-align:right;display:flex;align-items:center;justify-content:flex-end;gap:6px;font-family:'DM Mono',monospace;">${s.totalHours}/${sCap}ч ${pctLabel(s.totalHours,sCap)}</span>
+    </div>`;
+  });
+  html+=`</div>`;
+  document.getElementById('tab-load').innerHTML=html;
+}
+
+
+let taskModalId = null;
+let taskModalRoleEdits = {};
+
+
+
+function toggleRolePanel(id){
+  const el=document.getElementById(id);
+  if(el) el.style.display=el.style.display==='none'?'block':'none';
+}
+function moveRoleToNextSprint(taskId, role, currentSprintNum){
+  const t=window.tasks.find(t=>t.id===taskId);
+  if(!t) return;
+  if(!t.rolePinnedSprint) t.rolePinnedSprint={};
+  t.rolePinnedSprint[role]=currentSprintNum+1;
+  triggerSave();
+  window.autoAssignSprints();
+  renderAll();
+}
+function clearRolePin(taskId, role){
+  const t=window.tasks.find(t=>t.id===taskId);
+  if(!t||!t.rolePinnedSprint) return;
+  delete t.rolePinnedSprint[role];
+  triggerSave();
+  window.autoAssignSprints();
+  renderAll();
+}
+
+function showGanttTip(e, text){
+  const tip = document.getElementById('gantt-tip');
+  tip.textContent = text;
+  tip.style.display = 'block';
+  tip.style.left = (e.clientX + 12) + 'px';
+  tip.style.top = (e.clientY - 28) + 'px';
+}
+function hideGanttTip(){
+  document.getElementById('gantt-tip').style.display = 'none';
+}
+document.addEventListener('mousemove', function(e){
+  const tip = document.getElementById('gantt-tip');
+  if(tip && tip.style.display !== 'none'){
+    tip.style.left = (e.clientX + 12) + 'px';
+    tip.style.top = (e.clientY - 28) + 'px';
+  }
+});
+
+
+
+function deleteComment(taskId, idx){
+  const t = window.tasks.find(t=>t.id===taskId);
+  if(!t||!t.comments) return;
+  t.comments.splice(idx, 1);
+  renderTaskComments(taskId);
+  triggerSave();
+  renderBacklog();
+}
+
+function renderTaskComments(taskId){
+  const t = window.tasks.find(t=>t.id===taskId);
+  const list = document.getElementById('task-comments-list');
+  if(!t||!list) return;
+  const comments = t.comments||[];
+  if(comments.length===0){
+    list.innerHTML='<div style="font-size:12px;color:var(--text3);padding:4px 0;">Комментариев пока нет</div>';
+    return;
+  }
+  // Show comments in reverse order (newest first), with original index for deletion
+  list.innerHTML = comments.map((c,origIdx)=>({...c,origIdx})).reverse().map(c=>{
+    const d = new Date(c.date);
+    const dateStr = d.toLocaleDateString('ru-RU',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+    return `<div style="background:var(--bg2);border-radius:var(--radius-sm);padding:8px 10px;position:relative;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+        <span style="font-size:12px;font-weight:600;color:var(--text);">${c.author}</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:10px;color:var(--text3);">${dateStr}</span>
+          <button onclick="deleteComment(${taskId},${c.origIdx})" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--text3);padding:0;line-height:1;" title="Удалить комментарий">🗑</button>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--text);line-height:1.4;white-space:pre-wrap;">${c.text}</div>
+    </div>`;
+  }).join('');
+}
+
+function addComment(){
+  const author = document.getElementById('comment-author').value.trim();
+  const text = document.getElementById('comment-text').value.trim();
+  if(!author||!text) return;
+  const t = window.tasks.find(t=>t.id===taskModalId);
+  if(!t) return;
+  if(!t.comments) t.comments=[];
+  t.comments.push({author, text, date: new Date().toISOString()});
+  document.getElementById('comment-text').value='';
+  renderTaskComments(taskModalId);
+  triggerSave();
+}
+
+// Save last used author name
+const AUTHOR_KEY = 'sprint-planner-author';
+function loadSavedAuthor(){
+  const saved = localStorage.getItem(AUTHOR_KEY);
+  if(saved){ const el=document.getElementById('comment-author'); if(el) el.value=saved; }
+}
+function saveAuthorName(){
+  const el=document.getElementById('comment-author');
+  if(el&&el.value.trim()) localStorage.setItem(AUTHOR_KEY, el.value.trim());
+}
+
+let modalSaveTimer=null;
+function scheduleModalSave(){
+  if(modalSaveTimer) clearTimeout(modalSaveTimer);
+  modalSaveTimer=setTimeout(()=>applyTaskModal(false), 800);
+}
+function updateConfBar(){
+  const v = parseInt(document.getElementById('task-modal-conf').value);
+  const bar = document.getElementById('conf-bar');
+  const hint = document.getElementById('conf-hint');
+  if(isNaN(v)){bar.style.width='0%';hint.textContent='Не указано';return;}
+  bar.style.width = Math.min(100,v)+'%';
+  if(v>=80){bar.style.background='#3D7A1E';hint.textContent='Высокая уверенность — оценка надёжна';}
+  else if(v>=50){bar.style.background='#D4840A';hint.textContent='Средняя уверенность — возможны отклонения';}
+  else{bar.style.background='#C0392B';hint.textContent='Низкая уверенность — оценка предварительная';}
+}
+function setConf(v){
+  document.getElementById('task-modal-conf').value = v;
+  updateConfBar();
+}
+
+function openTaskModal(id){
+  taskModalId = id;
+  taskModalRoleEdits = {};
+  const t = window.tasks.find(t => t.id === id);
+  document.getElementById('task-modal-name').textContent = t.name;
+  const h = taskEffectiveHours(t);
+  const sp = t.assignedSprint ? 'Спринт ' + t.assignedSprint : 'Не распределена';
+  document.getElementById('task-modal-meta').textContent = (t.priority ? '№' + t.priority + ' · ' : '') + (h ? h + ' ч · ' : '') + sp;
+  
+  // Confidence
+  const confInput = document.getElementById('task-modal-conf');
+  confInput.value = t.confidence !== null && t.confidence !== undefined ? t.confidence : '';
+  updateConfBar();
+  confInput.oninput = function(){ updateConfBar(); scheduleModalSave(); };
+  confInput.onblur = function(){ applyTaskModal(false); };
+
+  // Sprint pin
+  const sprintSel = document.getElementById('task-modal-sprint');
+  sprintSel.innerHTML = '<option value="">— Авто (по приоритету)</option>';
+  const maxSprint = Math.max(window.sprints.length + 2, 8);
+  for(let i=1;i<=maxSprint;i++){
+    const d = window.sprints[i-1];
+    const label = d ? `Спринт ${i} (${d.totalHours}ч)` : `Спринт ${i}`;
+    sprintSel.innerHTML += `<option value="${i}" ${t.pinnedSprint===i?'selected':''}>${label}</option>`;
+  }
+  const hintEl = document.getElementById('task-modal-sprint-hint');
+  hintEl.textContent = t.pinnedSprint ? `Закреплена за спринтом ${t.pinnedSprint}` : 'Задача распределяется автоматически по приоритету';
+  sprintSel.onchange = function(){
+    hintEl.textContent = this.value ? `Будет закреплена за спринтом ${this.value}` : 'Задача распределяется автоматически по приоритету';
+    applyTaskModal(false);
+  };
+
+  // Quick-pick buttons
+  const confBtns = document.getElementById('conf-buttons');
+  confBtns.innerHTML = [25,50,75,90,100].map(v =>
+    '<button class="btn btn-ghost btn-sm" onclick="setConf('+v+')" style="padding:3px 10px;font-size:11px;">'+v+'%</button>'
+  ).join('');
+
+  // Link
+  const linkInput = document.getElementById('task-modal-link');
+  linkInput.value = t.link || '';
+  document.getElementById('task-modal-link-open').style.display = t.link ? 'inline-flex' : 'none';
+  linkInput.oninput = function(){
+    document.getElementById('task-modal-link-open').style.display = this.value.trim() ? 'inline-flex' : 'none';
+  };
+  linkInput.onblur = function(){ applyTaskModal(false); };
+
+  // Roles
+  // Build role order section
+  const ro = t.roleOrder || {'BA':1,'Дизайн':1,'Back Api':2,'Back Front':2,'WEB/Mobile Api':2,'WEB Front':3,'Android':3,'iOS':3,'QA':4};
+  const activeRolesForOrder = ROLES.filter(r=>(t.estimates[r]||0)>0);
+  const maxGroup = activeRolesForOrder.length>0 ? Math.max(...activeRolesForOrder.map(r=>ro[r]||1)) : 1;
+  let orderHtml = '';
+  for(let g=1;g<=maxGroup;g++){
+    const rolesInGroup = activeRolesForOrder.filter(r=>(ro[r]||1)===g);
+    if(rolesInGroup.length===0) continue;
+    orderHtml += `<div class="role-order-group" data-group="${g}" data-taskid="${t.id}"
+      style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--bg2);
+      border-radius:6px;margin-bottom:6px;border:2px dashed var(--border);"
+      ondragover="event.preventDefault();this.style.borderColor='var(--accent)'"
+      ondragleave="this.style.borderColor='var(--border)'"
+      ondrop="dropRoleToGroup(event,${t.id},${g})">
+      <span style="font-size:11px;color:var(--text3);min-width:18px;font-weight:700;">${g}</span>
+      ${rolesInGroup.map(r=>`<span draggable="true"
+        ondragstart="dragRoleStart(event,'${r}',${t.id})"
+        style="font-size:11px;padding:3px 10px;background:var(--accent,#2C5F9E);color:#fff;
+        border-radius:4px;cursor:grab;user-select:none;">${r}</span>`).join('')}
+    </div>`;
+  }
+  // Add new group drop zone
+  orderHtml += `<div class="role-order-group" data-group="${maxGroup+1}" data-taskid="${t.id}"
+    style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:transparent;
+    border-radius:6px;margin-bottom:6px;border:2px dashed var(--border);min-height:34px;color:var(--text3);font-size:11px;"
+    ondragover="event.preventDefault();this.style.borderColor='var(--accent)'"
+    ondragleave="this.style.borderColor='var(--border)'"
+    ondrop="dropRoleToGroup(event,${t.id},${maxGroup+1})">
+    + перетащи сюда для новой группы
+  </div>`;
+
+  const orderEl = document.getElementById('task-modal-order');
+  if(orderEl) orderEl.innerHTML = orderHtml;
+
+  let rolesHtml = '';
+  ROLES.forEach(r => {
+    const val = t.estimates[r] || 0;
+    const cap = sprintCapacity(r);
+    const count = window.team.roles[r] || 0;
+    rolesHtml += `<div style="display:grid;grid-template-columns:140px 90px 1fr;gap:12px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);">
+      <div>
+        <div style="font-size:13px;font-weight:500;">${r}</div>
+        <div style="font-size:10px;color:var(--text3);">${count} чел. · ${cap} ч/спринт</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;">
+        <input type="number" value="${val||''}" min="0" placeholder="0" style="width:64px;"
+          oninput="taskModalRoleEdits['${r}']=parseFloat(this.value)||0;scheduleModalSave()"
+          onblur="applyTaskModal(false)"
+          id="role-input-${id}-${r.replace(/ /g,'_')}">
+        <span style="font-size:12px;color:var(--text3);">ч</span>
+      </div>
+      <div style="height:6px;background:var(--bg2);border-radius:3px;overflow:hidden;">
+        ${val && cap ? '<div style="width:'+Math.min(100,Math.round(val/cap*100))+'%;height:100%;background:var(--green);border-radius:3px;"></div>' : ''}
+      </div>
+    </div>`;
+  });
+  document.getElementById('task-modal-roles').innerHTML = rolesHtml;
+  // Priority button
+  const prioBtn = document.getElementById('task-modal-priority-btn');
+  if(prioBtn){
+    const tPrio = window.tasks.find(t=>t.id===id);
+    if(tPrio && tPrio.priority !== null){
+      prioBtn.innerHTML = '<button class="btn btn-ghost btn-sm" onclick="removePriority('+id+');closeTaskModal();" style="font-size:11px;color:var(--red);border-color:var(--red);">✕ убрать приоритет</button>';
+    } else {
+      prioBtn.innerHTML = '<button class="btn btn-ghost btn-sm" onclick="assignNextPriority('+id+');closeTaskModal();" style="font-size:11px;">+ поставить в очередь</button>';
+    }
+  }
+  document.getElementById('task-modal').style.display = 'flex';
+  renderTaskComments(id);
+  // Reset save indicator
+  const sdot=document.getElementById('modal-save-dot');
+  const slbl=document.getElementById('modal-save-label');
+  if(sdot) sdot.style.background='var(--text3)';
+  if(slbl){ slbl.textContent='Изменения сохраняются автоматически'; slbl.style.color='var(--text3)'; }
+  loadSavedAuthor();
+  document.getElementById('comment-author').onblur = saveAuthorName;
+}
+
+function closeTaskModal(){
+  document.getElementById('task-modal').style.display = 'none';
+  taskModalId = null;
+  taskModalRoleEdits = {};
+}
+
+function openTaskLink(){
+  const val = document.getElementById('task-modal-link').value.trim();
+  if(val){
+    const url = val.match(/^https?:\/\//) ? val : 'https://' + val;
+    window.open(url, '_blank');
+  }
+}
+
+function applyTaskModal(closeAfter){
+  const t = window.tasks.find(t => t.id === taskModalId);
+  if(!t) return;
+  
+  // Save role estimates
+  ROLES.forEach(r => {
+    const inputId = 'role-input-' + taskModalId + '-' + r.replace(/ /g,'_');
+    const el = document.getElementById(inputId);
+    if(el){
+      const v = parseFloat(el.value) || 0;
+      if(v > 0) t.estimates[r] = v;
+      else delete t.estimates[r];
+    }
+  });
+  
+  // Save link
+  let linkVal = document.getElementById('task-modal-link').value.trim();
+  if(linkVal && !linkVal.match(/^https?:\/\//)) linkVal = 'https://' + linkVal;
+  t.link = linkVal || null;
+  
+  // Save confidence
+  const confVal = parseInt(document.getElementById('task-modal-conf').value);
+  t.confidence = isNaN(confVal) ? null : Math.min(100, Math.max(0, confVal));
+
+  // Save pinned sprint
+  const pinnedVal = document.getElementById('task-modal-sprint').value;
+  t.pinnedSprint = pinnedVal ? parseInt(pinnedVal) : null;
+
+  window.autoAssignSprints();
+  triggerSave();
+  
+  // Show saved indicator
+  const dot = document.getElementById('modal-save-dot');
+  const lbl = document.getElementById('modal-save-label');
+  if(dot && lbl){
+    dot.style.background = '#3D7A1E';
+    lbl.textContent = 'Сохранено';
+    lbl.style.color = '#3D7A1E';
+    setTimeout(()=>{
+      if(dot) dot.style.background = 'var(--text3)';
+      if(lbl){ lbl.textContent = 'Изменения сохраняются автоматически'; lbl.style.color = 'var(--text3)'; }
+    }, 2000);
+  }
+
+  if(closeAfter){
+    closeTaskModal();
+    renderAll();
+  } else {
+    // Re-render only other tabs
+    renderRoadmap();renderTeam();renderSprints();renderLoad();
+    renderBacklog();
+  }
+}
+
+
+// ---- DRAG & DROP PRIORITY ----
+let dragSrcId = null;
+
+function onDragStart(e, taskId){
+  dragSrcId = taskId;
+  e.dataTransfer.effectAllowed = 'move';
+  e.currentTarget.classList.add('dragging');
+}
+function onDragEnd(e){
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.task-drag-row').forEach(r=>r.classList.remove('drag-over'));
+}
+function onDragOver(e, taskId){
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('.task-drag-row').forEach(r=>r.classList.remove('drag-over'));
+  if(taskId !== dragSrcId){
+    const el = document.getElementById('drag-row-'+taskId);
+    if(el) el.classList.add('drag-over');
+  }
+}
+function onDrop(e, targetId){
+  e.preventDefault();
+  document.querySelectorAll('.task-drag-row').forEach(r=>r.classList.remove('drag-over'));
+  if(!dragSrcId || dragSrcId === targetId) return;
+
+  const srcIdx = window.tasks.findIndex(t=>t.id===dragSrcId);
+  const tgtIdx = window.tasks.findIndex(t=>t.id===targetId);
+  if(srcIdx===-1||tgtIdx===-1) return;
+
+  // Reorder tasks array
+  const [moved] = window.tasks.splice(srcIdx, 1);
+  window.tasks.splice(tgtIdx, 0, moved);
+
+  // Renumber ALL tasks sequentially based on new visual order
+  // Tasks that had null priority get assigned a number too if dropped among prioritized
+  // Simple rule: renumber everything in new order
+  let pNum = 1;
+  window.tasks.forEach(t => {
+    // If task had a priority before OR is now adjacent to prioritized tasks, give it a number
+    if(t.priority !== null) {
+      t.priority = pNum++;
+    }
+  });
+  // Also: if the moved task had no priority and was dropped among prioritized tasks, give it one
+  const movedTask = window.tasks[tgtIdx];
+  if(movedTask && movedTask.priority === null) {
+    const prev = window.tasks[tgtIdx - 1];
+    const next = window.tasks[tgtIdx + 1];
+    if((prev && prev.priority !== null) || (next && next.priority !== null)) {
+      // Insert between priorities — renumber all
+      let p = 1;
+      window.tasks.forEach(t => { t.priority = p++; });
+    }
+  }
+
+  dragSrcId = null;
+  window.autoAssignSprints();
+  triggerSave();
+  renderAll();
+}
+
+function goToSprint(num){document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));document.querySelectorAll(".tab")[3].classList.add("active");document.getElementById("tab-sprints").classList.add("active");window.renderAll();setTimeout(()=>{const el=document.getElementById("sprint-body-"+num);if(el){el.style.display="block";el.closest(".sprint-block").scrollIntoView({behavior:"smooth",block:"start"});}},80);}
+function showTab(e,name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  e.target.classList.add('active');document.getElementById('tab-'+name).classList.add('active');
+}
+window.renderAll=function(){renderRoadmap();renderBacklog();renderTeam();renderSprints();renderLoad();}
+window.autoAssignSprints();
+window.renderAll();
+// Fallback: if Firebase doesn't load in 5 seconds, show app anyway
+setTimeout(function(){
+  const overlay = document.getElementById('loading-overlay');
+  if(overlay && overlay.style.display !== 'none'){
+    overlay.style.display='none';
+    window.autoAssignSprints();
+    window.renderAll();
+  }
+}, 5000);
+</script>
+</body>
+</html>
