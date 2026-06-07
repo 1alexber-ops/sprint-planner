@@ -1,9 +1,10 @@
 # Sprint Planner — paritet
 
 ## Правила работы
-- После каждого изменения обновляй версию v0.XX в заголовке (title и h1)
+- После каждого изменения обновляй версию v0.XX в заголовке (title и h1) и увеличивай на 0.01
 - Делай git commit после каждого изменения с описанием на русском
-- Деплой: firebase deploy
+- Деплой: FIREBASE_TOKEN="$(cat ~/.firebase_token)" firebase deploy --project eparitet26 (токен хранится в ~/.firebase_token)
+- После каждого деплоя увеличивай версию на 0.01
 - URL: https://eparitet26.web.app
 
 ## Стек
